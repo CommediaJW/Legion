@@ -3,9 +3,10 @@ import re
 import networkx as nx
 import os
 import sys
-import argparse 
+import argparse
 import pandas as pd
 import numpy as np
+
 
 def parse_topo_output(output):
     """
@@ -17,16 +18,21 @@ def parse_topo_output(output):
     gpu_lines = [line for line in lines if line.startswith("GPU")]
     for i, line in enumerate(gpu_lines):
         elements = line.split()
-        for j, elem in enumerate(elements[1:], start=0):  # Start from the first GPU column
+        for j, elem in enumerate(elements[1:],
+                                 start=0):  # Start from the first GPU column
             if elem.startswith("NV"):
                 connections.append((i, j))
     return connections
 
+
 def get_nvlink_topology():
     # Execute the `nvidia-smi topo -m` command to get the topology matrix
-    result = subprocess.run(['nvidia-smi', 'topo', '-m'], stdout=subprocess.PIPE, text=True)
+    result = subprocess.run(['nvidia-smi', 'topo', '-m'],
+                            stdout=subprocess.PIPE,
+                            text=True)
     connections = parse_topo_output(result.stdout)
     return connections
+
 
 def find_largest_fully_connected_group(G):
     """
@@ -38,8 +44,9 @@ def find_largest_fully_connected_group(G):
     max_cliques = [clique for clique in cliques if len(clique) == max_size]
     return max_size, max_cliques
 
+
 if __name__ == "__main__":
-    
+
     cur_path = sys.path[0]
     argparser = argparse.ArgumentParser("Graph Partitioning.")
     argparser.add_argument('--dataset_path', type=str, default='dataset')
@@ -47,10 +54,9 @@ if __name__ == "__main__":
     argparser.add_argument('--processes_number', type=int, default=4)
     argparser.add_argument('--gpu_num', type=int, default=2)
     args = argparser.parse_args()
-    
-    
+
     if args.dataset_name == "products":
-        path =  args.dataset_path + "/products/"
+        path = args.dataset_path + "/products/"
         vertices_num = 2449029
         edges_num = 123718280
         features_dim = 100
@@ -99,29 +105,32 @@ if __name__ == "__main__":
         test_set_num = 100000
     else:
         print("invalid dataset path")
-        exit    
-    
-    connections = get_nvlink_topology()
-    G = nx.Graph()
-    G.add_edges_from(connections)
-    group_size, fully_connected_groups = find_largest_fully_connected_group(G)
-    if int(args.gpu_num/group_size) > 1:
+        exit
+
+    # connections = get_nvlink_topology()
+    # G = nx.Graph()
+    # G.add_edges_from(connections)
+    # group_size, fully_connected_groups = find_largest_fully_connected_group(G)
+    group_size = 1
+    fully_connected_groups = [[0], [1]]
+
+    if int(args.gpu_num / group_size) > 1:
         partition_command = [
-            "mpirun",
-            "-n", "4",
-            "./dataset/xtrapulp/xtrapulp",
-            "./dataset/xtrapulp/" + args.dataset_name+"_xtraformat",
-            str(int(args.gpu_num/group_size)),
-            "-v", "1.03",
-            "-l"
+            "mpirun", "-n", "4", "./dataset/xtrapulp/xtrapulp",
+            f"{args.dataset_path}/{args.dataset_name}/{args.dataset_name}_xtraformat",
+            str(int(args.gpu_num / group_size)), "-v", "1.03", "-l"
         ]
         print(partition_command)
-        result = subprocess.run(partition_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
+        result = subprocess.run(partition_command,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True)
+
         print("STDOUT:", result.stdout)
         print("STDERR:", result.stderr)
-        
-        file_path = "./dataset/xtrapulp/"+args.dataset_name+"_xtraformat.parts."+str(int(args.gpu_num/group_size))
+
+        file_path = "./dataset/xtrapulp/" + args.dataset_name + "_xtraformat.parts." + str(
+            int(args.gpu_num / group_size))
         df = pd.read_csv(file_path, header=None, delimiter="\s+")
         data = df.to_numpy()
         data = data.astype(np.int32)
@@ -129,11 +138,11 @@ if __name__ == "__main__":
         # print(data)
 
         move_command = [
-            "mv",
-            "partition",
-            "./dataset/"+args.dataset_name+"/"
+            "mv", "partition", f"{args.dataset_path}/{args.dataset_name}/"
         ]
         print(move_command)
-        result2 = subprocess.run(move_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)     
+        result2 = subprocess.run(move_command,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 text=True)
         print("STDERR:", result2.stderr)
-    
