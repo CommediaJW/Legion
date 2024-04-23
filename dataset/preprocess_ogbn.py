@@ -2,21 +2,6 @@ import numpy as np
 from ogb import nodeproppred
 import argparse
 import os
-import torch
-'''
-np.random.seed(1)
-length = 100
-data = np.random.rand(length).astype('float32')
-print(data)
-fp = np.memmap('data.bin', dtype='float32', mode='w+', shape=(length,))
-print(fp)
-fp[:] = data[:]
-print(fp)
-
-
-fp = np.memmap('data.bin', dtype='float32', mode='r+', shape=(100,))
-print(fp)
-'''
 
 
 def save_int32(tensor, path):
@@ -63,13 +48,13 @@ if __name__ == "__main__":
         'valid'], splitted_idx['test']
     g, labels = data[0]
     indptr, indices, _ = g.adj_tensors('csc')
-    features = g.ndata['feat']
+    features = g.ndata.pop('feat')
     labels = np.squeeze(labels, 1)
 
     # save indptr
     save_int64(indptr, os.path.join(args.out_dir, "edge_src"))
 
-    #save indices
+    # save indices
     save_int32(indices, os.path.join(args.out_dir, "edge_dst"))
     print(indptr)
     print(indices)
@@ -79,6 +64,7 @@ if __name__ == "__main__":
     save_int32(labels, os.path.join(args.out_dir, "labels"))
     print(features)
     print(labels)
+    print("Num class:", labels.max().item() + 1)
 
     # save nid
     save_int32(train_nid, os.path.join(args.out_dir, "trainingset"))
@@ -88,15 +74,18 @@ if __name__ == "__main__":
     print(val_nid.numel())
     print(test_nid.numel())
 
-    # xtrapulp_format
-    dst, src = g.adj_tensors('coo')
-    src, sort_idcs = torch.sort(src)
-    src = src.reshape((1, src.shape[0]))
-    dst = dst[sort_idcs].reshape(1, dst.shape[0])
-    print(src)
-    print(dst)
-    xtrapulp_edges = torch.cat([src, dst], dim=0)
-    xtrapulp_edges = torch.transpose(xtrapulp_edges, 0, 1).flatten()
-    print(xtrapulp_edges)
-    save_int32(xtrapulp_edges,
-               os.path.join(args.out_dir, f"{graph_name}_xtraformat"))
+    # # xtrapulp_format
+    # dst, src = g.adj_tensors('coo')
+    # src, sort_idcs = torch.sort(src)
+    # dst = dst[sort_idcs]
+    # print(src)
+    # print(dst)
+
+    # src = src.reshape((1, src.shape[0]))
+    # dst = dst.reshape(1, dst.shape[0])
+    # xtrapulp_edges = torch.cat([src, dst], dim=0)
+    # xtrapulp_edges = torch.transpose(xtrapulp_edges, 0, 1).flatten()
+    # print(xtrapulp_edges)
+    # save_int32(xtrapulp_edges,
+    #            os.path.join(args.out_dir, f"{graph_name}_xtraformat"))
+    # del xtrapulp_edges
