@@ -107,13 +107,13 @@ if __name__ == "__main__":
         print("invalid dataset path")
         exit
 
-    # connections = get_nvlink_topology()
-    # G = nx.Graph()
-    # G.add_edges_from(connections)
-    # group_size, fully_connected_groups = find_largest_fully_connected_group(G)
-    group_size = 1
-    fully_connected_groups = [[0], [1]]
-
+    connections = get_nvlink_topology()
+    G = nx.Graph()
+    G.add_edges_from(connections)
+    group_size, fully_connected_groups = find_largest_fully_connected_group(G)
+    print(group_size)
+    print(fully_connected_groups)
+    exit()
     if int(args.gpu_num / group_size) > 1:
         partition_command = [
             "mpirun", "-n", "4", "./dataset/xtrapulp/xtrapulp",
@@ -136,7 +136,7 @@ if __name__ == "__main__":
         data = data.astype(np.int32)
         data.tofile('partition')
         # print(data)
-
+        print(data.shape)
         move_command = [
             "mv", "partition", f"{args.dataset_path}/{args.dataset_name}/"
         ]
