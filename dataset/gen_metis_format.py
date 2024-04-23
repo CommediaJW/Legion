@@ -3,7 +3,7 @@ from ogb import nodeproppred
 import argparse
 import os
 import torch
-from tqdm import tqdm
+from tqdm import trange
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -68,21 +68,17 @@ if __name__ == "__main__":
     hearder = "{} {} 010 2\n".format(g.num_nodes(), src.shape[0])
     f.write(hearder)
 
-    with tqdm(total=g.num_nodes()) as pbar:
-        processed = 0
-        for nid in range(g.num_nodes()):
-            if train_mask[nid].item() == True:
-                f.write("1 0")
-            else:
-                f.write("0 1")
-            begin = indptr[nid].item()
-            end = indptr[nid + 1].item()
-            neighbor_list = (dst[begin:end] + 1).tolist()
-            neighbor_list = [str(neighbor) for neighbor in neighbor_list]
-            line = " " + " ".join(neighbor_list) + "\n"
-            f.write(line)
-
-            processed += 1
-            pbar.update(processed)
+    print("Write metis graph format...")
+    for nid in trange(g.num_nodes()):
+        if train_mask[nid].item() == True:
+            f.write("1 0")
+        else:
+            f.write("0 1")
+        begin = indptr[nid].item()
+        end = indptr[nid + 1].item()
+        neighbor_list = (dst[begin:end] + 1).tolist()
+        neighbor_list = [str(neighbor) for neighbor in neighbor_list]
+        line = " " + " ".join(neighbor_list) + "\n"
+        f.write(line)
 
     f.close()

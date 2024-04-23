@@ -165,7 +165,7 @@ void StorageManagement::LoadFeature(BuildInfo *info)
     mmap_trainingset_read(testing_path, testing_ids);
     if (in_memory_mode_)
     {
-        cudaHostAlloc(&host_float_feature, int64_t(int64_t(int64_t(node_num) * nf) * sizeof(float)), cudaHostAllocMapped);
+        cudaHostAlloc(&host_float_feature, node_num * nf * sizeof(float), cudaHostAllocMapped);
         mmap_features_read(features_path, host_float_feature);
     }
     mmap_labels_read(labels_path, all_labels);
@@ -268,7 +268,7 @@ void StorageManagement::Initialze(int32_t partition_count, int32_t in_memory_mod
 
     BuildInfo *info = new BuildInfo();
 
-    // EnableP2PAccess();
+    EnableP2PAccess();
 
     ConfigPartition(info, partition_count);
 

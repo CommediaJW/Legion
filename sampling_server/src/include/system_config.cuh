@@ -43,15 +43,14 @@
 #define NUM_LBS_PER_SSD 0x100000000
 #define MAX_SSDS_SUPPORTED 16
 
-
-#define INTERBATCH_CON 2 //inter-batch pipeline concurrency 
-#define INTRABATCH_CON 3 //intra-batch pipeline concurrency
+#define INTERBATCH_CON 2 // inter-batch pipeline concurrency
+#define INTRABATCH_CON 3 // intra-batch pipeline concurrency
 
 #define MAX_DEVICE 8
 #define MEMORY_USAGE 7
 #define TRAINMODE 0
 #define VALIDMODE 1
-#define TESTMODE  2
+#define TESTMODE 2
 
 #define CACHEMISS_FLAG -2
 #define CACHECPU_FLAG -1

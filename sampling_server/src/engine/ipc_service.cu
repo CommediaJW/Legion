@@ -70,14 +70,23 @@ public:
     raw_batch_size_ = info->raw_batch_size;
 
     train_step_ = 0;
+    valid_step_ = 0;
+    test_step_ = 0;
     for (int32_t i = 0; i < partition_count; i++)
     {
       int32_t train_num = info->training_set_num[i];
       int32_t valid_num = info->validation_set_num[i];
       int32_t test_num = info->testing_set_num[i];
       int32_t train_step = (train_num + raw_batch_size_ - 1) / raw_batch_size_;
-      int32_t valid_step = (valid_num + raw_batch_size_ - 1) / raw_batch_size_;
-      int32_t test_step = (test_num + raw_batch_size_ - 1) / raw_batch_size_;
+
+      // Large batchsize for valid and test will cause illegal cuda memory access???
+
+      // int32_t valid_step = (valid_num + raw_batch_size_ - 1) / raw_batch_size_;
+      // int32_t test_step = (test_num + raw_batch_size_ - 1) / raw_batch_size_;
+
+      int32_t valid_step = (valid_num + 512 - 1) / 512;
+      int32_t test_step = (test_num + 512 - 1) / 512;
+
       train_step_ = train_step > train_step_ ? train_step : train_step_;
       valid_step_ = valid_step > valid_step_ ? valid_step : valid_step_;
       test_step_ = test_step > test_step_ ? test_step : test_step_;
@@ -85,8 +94,10 @@ public:
     for (int32_t i = 0; i < partition_count; i++)
     {
       train_batch_size_.push_back(raw_batch_size_);
-      valid_batch_size_.push_back(raw_batch_size_);
-      test_batch_size_.push_back(raw_batch_size_);
+      // valid_batch_size_.push_back(raw_batch_size_);
+      // test_batch_size_.push_back(raw_batch_size_);
+      valid_batch_size_.push_back(512);
+      test_batch_size_.push_back(512);
     }
 
     std::cout << "Train Steps: " << train_step_ << "\n";

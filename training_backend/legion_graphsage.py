@@ -97,14 +97,12 @@ def train_one_step(args, model, optimizer, loss_fcn, device, feat_len, iter,
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-
     torch.cuda.synchronize()
     ipc_service.synchronize()
     return 0
 
 
 def valid_one_step(args, model, metric, device, feat_len):
-
     step_batch = ipc_service.get_next(feat_len)
     step_block_sizes = ipc_service.get_block_size()
     ids, features, labels = step_batch[0], step_batch[1], step_batch[2]
@@ -117,7 +115,6 @@ def valid_one_step(args, model, metric, device, feat_len):
         blocks.append(
             create_dgl_block(block_agg_src, block_agg_dst, block_src_num,
                              block_dst_num))
-
     batch_pred = model(blocks, features)
     long_labels = torch.as_tensor(labels, dtype=torch.long, device=device)
     batch_pred = torch.softmax(batch_pred, dim=1).to(device)

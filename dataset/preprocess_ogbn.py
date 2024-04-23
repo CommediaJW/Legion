@@ -2,6 +2,7 @@ import numpy as np
 from ogb import nodeproppred
 import argparse
 import os
+import torch
 
 
 def save_int32(tensor, path):
@@ -33,6 +34,7 @@ if __name__ == "__main__":
                         default='ogbn-products',
                         choices=["ogbn-products", "ogbn-papers100M"])
     parser.add_argument('--out-dir', type=str, default='/data/legion_dataset')
+    parser.add_argument('--xtrapulp', type=bool, action="store_true")
     args = parser.parse_args()
 
     if args.dataset == "ogbn-products":
@@ -74,18 +76,19 @@ if __name__ == "__main__":
     print(val_nid.numel())
     print(test_nid.numel())
 
-    # # xtrapulp_format
-    # dst, src = g.adj_tensors('coo')
-    # src, sort_idcs = torch.sort(src)
-    # dst = dst[sort_idcs]
-    # print(src)
-    # print(dst)
+    if args.xtrapulp:
+        # xtrapulp_format
+        dst, src = g.adj_tensors('coo')
+        src, sort_idcs = torch.sort(src)
+        dst = dst[sort_idcs]
+        print(src)
+        print(dst)
 
-    # src = src.reshape((1, src.shape[0]))
-    # dst = dst.reshape(1, dst.shape[0])
-    # xtrapulp_edges = torch.cat([src, dst], dim=0)
-    # xtrapulp_edges = torch.transpose(xtrapulp_edges, 0, 1).flatten()
-    # print(xtrapulp_edges)
-    # save_int32(xtrapulp_edges,
-    #            os.path.join(args.out_dir, f"{graph_name}_xtraformat"))
-    # del xtrapulp_edges
+        src = src.reshape((1, src.shape[0]))
+        dst = dst.reshape(1, dst.shape[0])
+        xtrapulp_edges = torch.cat([src, dst], dim=0)
+        xtrapulp_edges = torch.transpose(xtrapulp_edges, 0, 1).flatten()
+        print(xtrapulp_edges)
+        save_int32(xtrapulp_edges,
+                   os.path.join(args.out_dir, f"{graph_name}_xtraformat"))
+        del xtrapulp_edges
