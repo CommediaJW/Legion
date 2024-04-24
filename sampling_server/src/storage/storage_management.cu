@@ -59,9 +59,11 @@ void StorageManagement::ReadMetaFIle(BuildInfo *info)
         std::cout << "Feature dim:        " << float_feature_len_ << "\n";
         iss >> training_set_num_;
         std::cout << "Training set num:   " << training_set_num_ << "\n";
-        iss >> validation_set_num_;
+        validation_set_num_ = 0;
+        // iss >> validation_set_num_;
         std::cout << "Validation set num: " << validation_set_num_ << "\n";
-        iss >> testing_set_num_;
+        testing_set_num_ = 0;
+        // iss >> testing_set_num_;
         std::cout << "Testing set num:    " << testing_set_num_ << "\n";
         iss >> cache_memory_;
         std::cout << "Cache memory:       " << cache_memory_ << "\n";
@@ -161,8 +163,8 @@ void StorageManagement::LoadFeature(BuildInfo *info)
     float *host_float_feature;
 
     mmap_trainingset_read(training_path, training_ids);
-    mmap_trainingset_read(validation_path, validation_ids);
-    mmap_trainingset_read(testing_path, testing_ids);
+    // mmap_trainingset_read(validation_path, validation_ids);
+    // mmap_trainingset_read(testing_path, testing_ids);
     if (in_memory_mode_)
     {
         cudaHostAlloc(&host_float_feature, node_num * nf * sizeof(float), cudaHostAllocMapped);

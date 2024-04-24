@@ -6,6 +6,7 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.multiprocessing as mp
 import torch.nn.functional as F
+import numpy as np
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn.functional as Func
@@ -231,12 +232,13 @@ def worker_process(rank, world_size, args):
     model.train()
 
     epoch_num = args.epoch
-
+    epoch_time_log = []
     for epoch in range(epoch_num):
         forward = 0
         start = time.time()
         epoch_time = 0
         for iter in range(train_steps):
+            # print(f"Train {iter}")
             train_loss = train_one_step(args, model, optimizer, loss_fcn,
                                         cuda_device, feat_len, iter, device_id)
             # if device_id == 0:
@@ -250,11 +252,15 @@ def worker_process(rank, world_size, args):
         model.metric = metric
         with torch.no_grad():
             for iter in range(valid_steps):
+                # print(f"Val {iter}")
                 valid_one_step(args, model, metric, cuda_device, feat_len)
             acc_val = metric.compute()
         if device_id == 0:
             print("Epoch:{}, Cost:{} s, Val Acc: {}".format(
                 epoch, epoch_time, acc_val))
+        epoch_time_log.append(epoch_time)
+
+    print("Ave epoch time: {:.3f} s".format(np.mean(epoch_time_log[2:])))
 
     model.eval()
     metric = torchmetrics.Accuracy('multiclass', num_classes=args.class_num)

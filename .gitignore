@@ -10,3 +10,4 @@ training_backend/ipcservice.egg-info
 __pycache__
 .vscode
 meta_config
+logs
