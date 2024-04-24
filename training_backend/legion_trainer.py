@@ -233,16 +233,21 @@ def worker_process(rank, world_size, args):
 
     epoch_num = args.epoch
     epoch_time_log = []
+    iter_time_log = []
     for epoch in range(epoch_num):
         forward = 0
         start = time.time()
         epoch_time = 0
         for iter in range(train_steps):
             # print(f"Train {iter}")
+            tic = time.time()
             train_loss = train_one_step(args, model, optimizer, loss_fcn,
                                         cuda_device, feat_len, iter, device_id)
-            # if device_id == 0:
-            #     print('Iter {} Train Loss :{} '.format(iter, train_loss))
+            toc = time.time()
+            iter_time_log.append(toc - tic)
+            if device_id == 0:
+                print('Iter {} Train Loss :{:.5f} Time: {:.3f} ms'.format(
+                    iter, train_loss, (toc - tic) * 1000))
         epoch_time += time.time() - start
 
         model.eval()
@@ -260,7 +265,10 @@ def worker_process(rank, world_size, args):
                 epoch, epoch_time, acc_val))
         epoch_time_log.append(epoch_time)
 
-    print("Ave epoch time: {:.3f} s".format(np.mean(epoch_time_log[2:])))
+    if device_id == 0:
+        print("Avg iteration time: {:.3f} ms".format(
+            np.mean(iter_time_log[5:]) * 1000))
+        print("Ave epoch time: {:.3f} s".format(np.mean(epoch_time_log[2:])))
 
     model.eval()
     metric = torchmetrics.Accuracy('multiclass', num_classes=args.class_num)
