@@ -34,7 +34,7 @@ if __name__ == "__main__":
                         default='ogbn-products',
                         choices=["ogbn-products", "ogbn-papers100M"])
     parser.add_argument('--out-dir', type=str, default='/data/legion_dataset')
-    parser.add_argument('--xtrapulp', type=bool, action="store_true")
+    parser.add_argument('--xtrapulp', action="store_true")
     args = parser.parse_args()
 
     if args.dataset == "ogbn-products":
