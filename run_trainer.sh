@@ -1,0 +1,2 @@
+python3 training_backend/legion_trainer.py --class_num 47  --features_num 100 --hidden_dim 32 --heads_num 4 --hops_num 3 --gpu_number 2 --epoch 5 --model sage
+python3 training_backend/legion_trainer.py --class_num 47  --features_num 100 --hidden_dim 32 --heads_num 4 --hops_num 3 --gpu_number 2 --epoch 5 --model gat

@@ -1,21 +1,18 @@
 import os
-
-# os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 import sys
-import tempfile
 import argparse
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-import torch.optim as optim
 import torch.multiprocessing as mp
+import torch.nn.functional as F
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn.functional as Func
 
 import ipc_service
 import dgl
-from dgl.nn.pytorch import SAGEConv
+import dgl.nn.pytorch as dglnn
 from dgl.heterograph import DGLBlock
 import time
 import numpy as np
@@ -47,20 +44,65 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.layers.append(SAGEConv(in_feats, n_hidden, 'mean'))
-        for _ in range(1, n_layers - 1):
-            self.layers.append(SAGEConv(n_hidden, n_hidden, 'mean'))
-        self.layers.append(SAGEConv(n_hidden, n_classes, 'mean'))
+        for i in range(0, n_layers):
+            in_dim = in_feats if i == 0 else n_hidden
+            out_dim = n_classes if i == n_layers - 1 else n_hidden
+            self.layers.append(dglnn.SAGEConv(in_dim, out_dim, "mean"))
         self.dropout = nn.Dropout(dropout)
         self.activation = activation
 
     def forward(self, blocks, x):
         h = x
-        for l, (layer, block) in enumerate(zip(self.layers, blocks)):
+        for i, (layer, block) in enumerate(zip(self.layers, blocks)):
             h = layer(block, h)
-            if l != len(self.layers) - 1:
+            if i != len(self.layers) - 1:
                 h = self.activation(h)
                 h = self.dropout(h)
+        return h
+
+
+class GAT(nn.Module):
+
+    def __init__(self,
+                 in_feats,
+                 n_hidden,
+                 n_classes,
+                 n_layers,
+                 n_heads,
+                 activation=Func.relu,
+                 feat_dropout=0.6,
+                 attn_dropout=0.6):
+        assert len(n_heads) == n_layers
+        assert n_heads[-1] == 1
+
+        super().__init__()
+        self.n_layers = n_layers
+        self.n_hidden = n_hidden
+        self.n_classes = n_classes
+        self.n_heads = n_heads
+
+        self.layers = nn.ModuleList()
+        for i in range(0, n_layers):
+            in_dim = in_feats if i == 0 else n_hidden * n_heads[i - 1]
+            out_dim = n_classes if i == n_layers - 1 else n_hidden
+            layer_activation = None if i == n_layers - 1 else activation
+            self.layers.append(
+                dglnn.GATConv(in_dim,
+                              out_dim,
+                              n_heads[i],
+                              feat_drop=feat_dropout,
+                              attn_drop=attn_dropout,
+                              activation=layer_activation,
+                              allow_zero_in_degree=True))
+
+    def forward(self, blocks, x):
+        h = x
+        for i, (layer, block) in enumerate(zip(self.layers, blocks)):
+            h = layer(block, h)
+            if i == self.n_layers - 1:
+                h = h.mean(1)
+            else:
+                h = h.flatten(1)
         return h
 
 
@@ -159,12 +201,27 @@ def worker_process(rank, world_size, args):
 
     feat_len = args.features_num
 
-    model = SAGE(in_feats=args.features_num,
-                 n_hidden=args.hidden_dim,
-                 n_classes=args.class_num,
-                 n_layers=args.hops_num,
-                 activation=Func.relu,
-                 dropout=args.drop_rate).to(cuda_device)
+    if args.model == "sage":
+        model = SAGE(in_feats=args.features_num,
+                     n_hidden=args.hidden_dim,
+                     n_classes=args.class_num,
+                     n_layers=args.hops_num,
+                     activation=Func.relu,
+                     dropout=args.drop_rate).to(cuda_device)
+    elif args.model == "gat":
+        args.hidden_dim = int(args.hidden_dim / args.heads_num)
+        heads = [args.heads_num for _ in range(args.hops_num - 1)]
+        heads.append(1)
+        model = GAT(in_feats=args.features_num,
+                    n_hidden=args.hidden_dim,
+                    n_classes=args.class_num,
+                    n_layers=args.hops_num,
+                    n_heads=heads,
+                    activation=Func.relu,
+                    feat_dropout=args.drop_rate,
+                    attn_dropout=args.drop_rate).to(cuda_device)
+    else:
+        raise NotImplemented
 
     if dist.is_initialized():
         model = DDP(model, device_ids=[device_id])
@@ -224,15 +281,19 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser("Train GNN.")
     argparser.add_argument('--class_num', type=int, default=2)
     argparser.add_argument('--features_num', type=int, default=128)
-    argparser.add_argument('--hidden_dim', type=int, default=256)
-    argparser.add_argument('--hops_num', type=int, default=2)
-    argparser.add_argument('--nbrs_num', type=list, default=[25, 10])
-    argparser.add_argument('--drop_rate', type=float, default=0.5)
+    argparser.add_argument('--hidden_dim', type=int, default=32)
+    argparser.add_argument('--heads_num', type=int, default=4)
+    argparser.add_argument('--model',
+                           type=str,
+                           default="sage",
+                           choices=["sage", "gat"])
+    argparser.add_argument('--hops_num', type=int, default=3)
+    argparser.add_argument('--drop_rate', type=float, default=0.2)
     argparser.add_argument('--learning_rate', type=float, default=0.003)
     argparser.add_argument('--epoch', type=int, default=2)
     argparser.add_argument('--gpu_number', type=int, default=2)
     args = argparser.parse_args()
 
     world_size = args.gpu_number
-
+    print(args)
     run_distribute(worker_process, world_size, args)
