@@ -89,4 +89,4 @@ if __name__ == "__main__":
             for pid in range(args.num_parts):
                 train_num[pid] = np.sum(node_part_id[train_nids] == pid)
         print(train_num)
-    node_part_id.tofile(os.path.join(out_dir, "partition"))
+    node_part_id.tofile(os.path.join(out_dir, f"partition{args.num_parts}"))

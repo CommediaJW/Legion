@@ -147,7 +147,7 @@ void StorageManagement::LoadFeature(BuildInfo *info)
     std::string features_path = dataset_path_ + "features";
     std::string labels_path = dataset_path_ + "labels";
 
-    std::string partition_path = dataset_path_ + "partition";
+    std::string partition_path = dataset_path_ + "partition" + std::to_string(partition_count);
 
     std::vector<int32_t> training_ids;
     training_ids.resize(training_set_num_);
