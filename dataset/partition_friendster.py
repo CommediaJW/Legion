@@ -10,40 +10,29 @@ if __name__ == "__main__":
     argparser.add_argument('--dataset-path',
                            type=str,
                            default='/data/legion_dataset')
-    argparser.add_argument('--dataset-name', type=str, default="products")
+    argparser.add_argument('--dataset-name', type=str, default="friendster")
     argparser.add_argument('--batch-size', type=int)
     args = argparser.parse_args()
 
-    if args.dataset_name == "products":
-        vertices_num = 2449029
-        edges_num = 123718280
-        features_dim = 100
-        train_set_num = 196615
-        valid_set_num = 39323
-        test_set_num = 2213091
-    elif args.dataset_name == "paper100M":
-        vertices_num = 111059956
-        edges_num = 1615685872
-        features_dim = 128
-        train_set_num = 1207179
-        valid_set_num = 125265
-        test_set_num = 214338
+    if args.dataset_name == "friendster":
+        path = args.dataset_path + "/friendster/"
+        vertices_num = 124836180
+        edges_num = 1806067135
+        features_dim = 256
+        train_set_num = 1248361
+        valid_set_num = 0
+        test_set_num = 0
     else:
-        print("invalid dataset path")
-        exit
+        raise NotImplementedError
+
 
     out_dir = os.path.join(args.dataset_path, args.dataset_name)
-    path_fn = os.path.join(
-        out_dir, f"{args.dataset_name}_metis.graph.part{args.num_parts}")
-    node_part_id = pd.read_csv(path_fn, header=None,
-                               delimiter="\s+").to_numpy().astype(
-                                   np.int32).flatten()
     train_nids = np.memmap(os.path.join(out_dir, "trainingset"),
                            dtype=np.int32,
                            mode="r",
                            shape=(train_set_num, ))
-    print(node_part_id)
-    print(train_nids)
+    node_part_id = np.memmap(os.path.join(out_dir, f"partition{args.num_parts}"), dtype='int32', mode='w+', shape=(vertices_num, ))
+    node_part_id[:] = np.arange(vertices_num, dtype=np.int32) % args.num_parts
 
     if args.batch_size is not None:
         train_num = []
@@ -61,4 +50,3 @@ if __name__ == "__main__":
             for pid in range(args.num_parts):
                 train_num[pid] = np.sum(node_part_id[train_nids] == pid)
         print(train_num)
-    node_part_id.tofile(os.path.join(out_dir, f"partition{args.num_parts}"))

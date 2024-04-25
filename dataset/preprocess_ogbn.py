@@ -2,6 +2,7 @@ import numpy as np
 from ogb import nodeproppred
 import argparse
 import os
+import dgl
 import torch
 
 
@@ -49,6 +50,8 @@ if __name__ == "__main__":
     train_nid, val_nid, test_nid = splitted_idx['train'], splitted_idx[
         'valid'], splitted_idx['test']
     g, labels = data[0]
+    if args.dataset == "ogbn-papers100M":
+        g = dgl.to_bidirected(g)
     indptr, indices, _ = g.adj_tensors('csc')
     features = g.ndata.pop('feat')
     labels = np.squeeze(labels, 1)
@@ -66,7 +69,7 @@ if __name__ == "__main__":
     save_int32(labels, os.path.join(args.out_dir, "labels"))
     print(features)
     print(labels)
-    print("Num class:", labels.max().item() + 1)
+    print("Num class:", labels[~torch.isnan[labels]].max().item() + 1)
 
     # save nid
     save_int32(train_nid, os.path.join(args.out_dir, "trainingset"))

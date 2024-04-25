@@ -44,6 +44,7 @@
 
 
 void mmap_trainingset_read(std::string &training_file, std::vector<int32_t>& training_set_ids){
+    std::cout<<"Load "<<training_file<<"\n";
     int64_t t_idx = 0;
     int32_t fd = open(training_file.c_str(), O_RDONLY);
     if(fd == -1){
@@ -64,6 +65,7 @@ void mmap_trainingset_read(std::string &training_file, std::vector<int32_t>& tra
 }
 
 int32_t mmap_partition_read(std::string &partition_file, int32_t* partition_index){
+    std::cout<<"Load "<<partition_file<<"\n";
     int64_t part_idx = 0;
     int32_t fd = open(partition_file.c_str(), O_RDONLY);
     if(fd == -1){
@@ -83,6 +85,7 @@ int32_t mmap_partition_read(std::string &partition_file, int32_t* partition_inde
 }
 
 void mmap_indptr_read(std::string &indptr_file, int64_t* indptr){
+    std::cout<<"Load "<<indptr_file<<"\n";
     int64_t indptr_index = 0;
     int32_t fd = open(indptr_file.c_str(), O_RDONLY);
     if(fd == -1){
@@ -102,6 +105,7 @@ void mmap_indptr_read(std::string &indptr_file, int64_t* indptr){
 }
 
 void mmap_indices_read(std::string &indices_file, int32_t* indices){
+    std::cout<<"Load "<<indices_file<<"\n";
     int64_t indices_index = 0;
     int32_t fd = open(indices_file.c_str(), O_RDONLY);
     if(fd == -1){
@@ -121,10 +125,12 @@ void mmap_indices_read(std::string &indices_file, int32_t* indices){
 }
 
 void mmap_features_read(std::string &features_file, float* features){
+    std::cout<<"Load "<<features_file<<"\n";
     int64_t n_idx = 0;
     int32_t fd = open(features_file.c_str(), O_RDONLY);
     if(fd == -1){
         std::cout<<"cannout open file: "<<features_file<<"\n";
+        return;
     }
     int64_t buf_len = lseek(fd, 0, SEEK_END);
     const float *buf = (float *)mmap(NULL, buf_len, PROT_READ, MAP_PRIVATE, fd, 0);
@@ -140,6 +146,7 @@ void mmap_features_read(std::string &features_file, float* features){
 }
 
 void mmap_labels_read(std::string &labels_file, std::vector<int32_t>& labels){
+    std::cout<<"Load "<<labels_file<<"\n";
     int64_t n_idx = 0;
     int32_t fd = open(labels_file.c_str(), O_RDONLY);
     if(fd == -1){

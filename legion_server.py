@@ -56,19 +56,19 @@ def Run(args):
     elif args.dataset_name == "paper100m":
         path = args.dataset_path + "/paper100M/"
         vertices_num = 111059956
-        edges_num = 1615685872
+        edges_num = 3228124712
         features_dim = 128
-        train_set_num = 11105995
-        valid_set_num = 100000
-        test_set_num = 100000
-    elif args.dataset_name == "com-friendster":
-        path = args.dataset_path + "/com-friendster/"
-        vertices_num = 65608366
+        train_set_num = 1207179
+        valid_set_num = 125265
+        test_set_num = 214338
+    elif args.dataset_name == "friendster":
+        path = args.dataset_path + "/friendster/"
+        vertices_num = 124836180
         edges_num = 1806067135
         features_dim = 256
-        train_set_num = 6560836
-        valid_set_num = 100000
-        test_set_num = 100000
+        train_set_num = 1248361
+        valid_set_num = 0
+        test_set_num = 0
     elif args.dataset_name == "ukunion":
         path = args.dataset_path + "/ukunion/"
         vertices_num = 133633040
