@@ -1,1 +1,1 @@
-python3 legion_server.py --dataset_path ../legion_dataset --dataset_name products --train_batch_size 1000 --gpu_number 2 --epoch 20 --cache_memory 800000000 --usenvlink 0 --fanout 12,12,12
+python3 legion_server.py --dataset_path ../legion_dataset --dataset_name paper100m --train_batch_size 1536 --gpu_number 4 --epoch 2 --cache_memory 2000000000 --usenvlink 0 --fanout 20,20,20

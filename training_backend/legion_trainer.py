@@ -70,9 +70,8 @@ class GAT(nn.Module):
                  n_classes,
                  n_layers,
                  n_heads,
-                 activation=Func.relu,
-                 feat_dropout=0.6,
-                 attn_dropout=0.6):
+                 activation=F.elu,
+                 dropout=0.5):
         assert len(n_heads) == n_layers
         assert n_heads[-1] == 1
 
@@ -86,15 +85,13 @@ class GAT(nn.Module):
         for i in range(0, n_layers):
             in_dim = in_feats if i == 0 else n_hidden * n_heads[i - 1]
             out_dim = n_classes if i == n_layers - 1 else n_hidden
-            layer_activation = None if i == n_layers - 1 else activation
             self.layers.append(
                 dglnn.GATConv(in_dim,
                               out_dim,
                               n_heads[i],
-                              feat_drop=feat_dropout,
-                              attn_drop=attn_dropout,
-                              activation=layer_activation,
                               allow_zero_in_degree=True))
+        self.dropout = nn.Dropout(dropout)
+        self.activation = activation
 
     def forward(self, blocks, x):
         h = x
@@ -103,6 +100,8 @@ class GAT(nn.Module):
             if i == self.n_layers - 1:
                 h = h.mean(1)
             else:
+                h = self.activation(h)
+                h = self.dropout(h)
                 h = h.flatten(1)
         return h
 
@@ -219,8 +218,7 @@ def worker_process(rank, world_size, args):
                     n_layers=args.hops_num,
                     n_heads=heads,
                     activation=Func.relu,
-                    feat_dropout=args.drop_rate,
-                    attn_dropout=args.drop_rate).to(cuda_device)
+                    dropout=args.drop_rate).to(cuda_device)
     else:
         raise NotImplemented
 
@@ -229,6 +227,7 @@ def worker_process(rank, world_size, args):
     loss_fcn = nn.CrossEntropyLoss()
     loss_fcn = loss_fcn.to(device_id)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.978)
     model.train()
 
     epoch_num = args.epoch
@@ -243,6 +242,7 @@ def worker_process(rank, world_size, args):
             tic = time.time()
             train_loss = train_one_step(args, model, optimizer, loss_fcn,
                                         cuda_device, feat_len, iter, device_id)
+            scheduler.step()
             toc = time.time()
             iter_time_log.append(toc - tic)
             if device_id == 0:
@@ -268,7 +268,7 @@ def worker_process(rank, world_size, args):
     if device_id == 0:
         print("Avg iteration time: {:.3f} ms".format(
             np.mean(iter_time_log[5:]) * 1000))
-        print("Ave epoch time: {:.3f} s".format(np.mean(epoch_time_log[2:])))
+        print("Ave epoch time: {:.3f} s".format(np.mean(epoch_time_log[1:])))
 
     model.eval()
     metric = torchmetrics.Accuracy('multiclass', num_classes=args.class_num)
@@ -302,7 +302,7 @@ if __name__ == "__main__":
                            default="sage",
                            choices=["sage", "gat"])
     argparser.add_argument('--hops_num', type=int, default=3)
-    argparser.add_argument('--drop_rate', type=float, default=0.2)
+    argparser.add_argument('--drop_rate', type=float, default=0.5)
     argparser.add_argument('--learning_rate', type=float, default=0.003)
     argparser.add_argument('--epoch', type=int, default=2)
     argparser.add_argument('--gpu_number', type=int, default=2)
